@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     obsext = ExtData()
     obsext.read(
-        "/home/kgordon/Python_git/spitzer_mir_ext/data/all_ext_14oct20_diffuse_ave_POWLAW2DRUDE.fits"
+        "data/all_ext_14oct20_diffuse_ave_POWLAW2DRUDE.fits"
     )
     plot_obsext(ax[0, 1], obsext)
     ax[0, 1].legend(fontsize=0.8 * fontsize)
