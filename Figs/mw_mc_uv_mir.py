@@ -1,16 +1,18 @@
+import glob
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 import astropy.units as u
 
+from dust_extinction.averages import G21
 from dust_extinction.parameter_averages import F19
 from dust_extinction.averages import G03_SMCBar, G03_LMCAvg, G03_LMC2, GCC09_MWAvg
 from measure_extinction.extdata import ExtData
 from measure_extinction.merge_obsspec import _wavegrid
 
 
-def plot_obsext(ax, obsext):
+def plot_obsext(ax, obsext, alpha=1.0, color="k"):
 
     obsext_wave = obsext.waves["BAND"].value
 
@@ -25,10 +27,10 @@ def plot_obsext(ax, obsext):
     ax.plot(
         obsext_IRS_wave,
         obsext_IRS_ext,
-        "b-",  # pcol[i] + psym[i],
+        f"{color}-",  # pcol[i] + psym[i],
         markersize=5,
         markeredgewidth=1.0,
-        alpha=1.0,
+        alpha=alpha,
         label="MWAvg",
     )
 
@@ -88,7 +90,7 @@ if __name__ == "__main__":
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
-    fig, ax = plt.subplots(ncols=2, nrows=3, figsize=(12, 10))
+    fig, ax = plt.subplots(ncols=3, nrows=3, figsize=(16, 10))
 
     # mw
     Rvs = [2.0, 3.0, 5.0]
@@ -111,8 +113,38 @@ if __name__ == "__main__":
     obsext.read(
         "data/all_ext_14oct20_diffuse_ave_POWLAW2DRUDE.fits"
     )
-    plot_obsext(ax[0, 1], obsext)
+    plot_obsext(ax[0, 1], obsext, color="b")
+    ax[0, 2].plot([obsext.g21_p50_fit["SIL1_CENTER"][0]], [obsext.g21_p50_fit["SIL1_FWHM"][0]],
+                  "bo", label="MWAvg")
     ax[0, 1].legend(fontsize=0.8 * fontsize)
+    ax[0, 2].legend(fontsize=0.8 * fontsize)
+
+    # read in the individual curves and plot their fits
+    xvals = np.arange(1.0, 30.0, 0.1) * u.micron
+    ifiles = glob.glob("indiv/*.fits")
+    npts = len(ifiles)
+    center = np.zeros(npts)
+    width = np.zeros(npts)
+    for k, cfile in enumerate(ifiles):
+        obsext = ExtData(filename=cfile)
+        center[k] = obsext.g21_p50_fit["SIL1_CENTER"][0]
+        width[k] = obsext.g21_p50_fit["SIL1_FWHM"][0]
+
+        gmod = G21(scale=obsext.g21_p50_fit["SCALE"][0],
+                   alpha=obsext.g21_p50_fit["ALPHA"][0],
+                   sil1_amp=obsext.g21_p50_fit["SIL1_AMP"][0],
+                   sil1_center=obsext.g21_p50_fit["SIL1_CENTER"][0],
+                   sil1_fwhm=obsext.g21_p50_fit["SIL1_FWHM"][0],
+                   sil1_asym=obsext.g21_p50_fit["SIL1_ASYM"][0],
+                   sil2_amp=obsext.g21_p50_fit["SIL2_AMP"][0],
+                   sil2_center=obsext.g21_p50_fit["SIL2_CENTER"][0],
+                   sil2_fwhm=obsext.g21_p50_fit["SIL2_FWHM"][0],
+                   sil2_asym=obsext.g21_p50_fit["SIL2_ASYM"][0])
+        ax[0, 1].plot(xvals, gmod(xvals), "k-", alpha=0.25)
+        # obsext.trans_elv_alav()
+        # plot_obsext(ax[0, 1], obsext, alpha=0.1, color="r-")
+
+    ax[0, 2].plot(center, width, "ko", alpha=0.25)
 
     # lmc
     lmc1 = G03_LMCAvg()
@@ -125,6 +157,15 @@ if __name__ == "__main__":
     ax[1, 1].text(
         10.0,
         0.05,
+        "this proposal",
+        fontsize=30,
+        verticalalignment="center",
+        horizontalalignment="center",
+    )
+
+    ax[1, 2].text(
+        9.8,
+        2.7,
         "this proposal",
         fontsize=30,
         verticalalignment="center",
@@ -147,9 +188,21 @@ if __name__ == "__main__":
     )
     ax[2, 1].set_xlabel(r"$\lambda [\mu m]$")
 
+    ax[2, 2].text(
+        9.8,
+        2.7,
+        "this proposal",
+        fontsize=30,
+        verticalalignment="center",
+        horizontalalignment="center",
+    )
+    ax[2, 2].set_xlabel(r"$\lambda_{o1} [\mu m]$")
+
     for k in range(3):
         for l in range(2):
             ax[k, l].set_ylabel(r"$A(\lambda)/A(V)$")
+
+        ax[k, 2].set_ylabel(r"$\gamma_{o1} [\mu m]$")
 
         ax[k, 0].set_xscale("log")
         ax[k, 0].set_xlim(0.1, 3.0)
@@ -159,8 +212,11 @@ if __name__ == "__main__":
 
         ax[k, 1].set_xlim(5.0, 15.0)
         ax[k, 1].set_ylim(0.0, 0.1)
-        ax[k, 1].yaxis.tick_right()
-        ax[k, 1].yaxis.set_label_position("right")
+        # ax[k, 1].yaxis.tick_right()
+        # ax[k, 1].yaxis.set_label_position("right")
+
+        ax[k, 2].set_xlim(9.6, 10.0)
+        ax[k, 2].set_ylim(1.0, 4.5)
 
         ax[k, 0].legend(fontsize=0.8 * fontsize)
 
