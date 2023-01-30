@@ -7,12 +7,13 @@ import astropy.units as u
 
 from dust_extinction.averages import G21
 from dust_extinction.parameter_averages import F19
+from dust_extinction.shapes import FM90
 from dust_extinction.averages import G03_SMCBar, G03_LMCAvg, G03_LMC2, GCC09_MWAvg
 from measure_extinction.extdata import ExtData
 from measure_extinction.merge_obsspec import _wavegrid
 
 
-def plot_obsext(ax, obsext, alpha=1.0, color="k"):
+def plot_obsext(ax, obsext, alpha=1.0, color="k", label="MWAvg"):
 
     obsext_wave = obsext.waves["BAND"].value
 
@@ -31,7 +32,7 @@ def plot_obsext(ax, obsext, alpha=1.0, color="k"):
         markersize=5,
         markeredgewidth=1.0,
         alpha=alpha,
-        label="MWAvg",
+        label=label,
     )
 
     # rebin IRS
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     plt.rc("ytick.major", width=2)
     plt.rc("ytick.minor", width=2)
 
-    fig, ax = plt.subplots(ncols=3, nrows=3, figsize=(16, 10))
+    fig, ax = plt.subplots(ncols=3, nrows=3, figsize=(16, 12))
 
     # mw
     Rvs = [2.0, 3.0, 5.0]
@@ -115,9 +116,7 @@ if __name__ == "__main__":
     )
     plot_obsext(ax[0, 1], obsext, color="b")
     ax[0, 2].plot([obsext.g21_p50_fit["SIL1_CENTER"][0]], [obsext.g21_p50_fit["SIL1_FWHM"][0]],
-                  "bo", label="MWAvg")
-    ax[0, 1].legend(fontsize=0.8 * fontsize)
-    ax[0, 2].legend(fontsize=0.8 * fontsize)
+                  "bo", label="MWAvg", ms=10)
 
     # read in the individual curves and plot their fits
     xvals = np.arange(1.0, 30.0, 0.1) * u.micron
@@ -140,11 +139,14 @@ if __name__ == "__main__":
                    sil2_center=obsext.g21_p50_fit["SIL2_CENTER"][0],
                    sil2_fwhm=obsext.g21_p50_fit["SIL2_FWHM"][0],
                    sil2_asym=obsext.g21_p50_fit["SIL2_ASYM"][0])
-        ax[0, 1].plot(xvals, gmod(xvals), "k-", alpha=0.25)
+        ax[0, 1].plot(xvals, gmod(xvals), "k-", alpha=0.25, label="Sightlines")
+        if k == 0:
+            ax[0, 1].legend(fontsize=0.8 * fontsize)
         # obsext.trans_elv_alav()
         # plot_obsext(ax[0, 1], obsext, alpha=0.1, color="r-")
 
-    ax[0, 2].plot(center, width, "ko", alpha=0.25)
+    ax[0, 2].plot(center, width, "ko", alpha=0.25, ms=8, label="Sightlines")
+    ax[0, 2].legend(fontsize=0.8 * fontsize)
 
     # lmc
     lmc1 = G03_LMCAvg()
@@ -156,7 +158,7 @@ if __name__ == "__main__":
     ax[1, 1].plot(1.0 / lmc2.obsdata_x, lmc2.obsdata_axav, label="G03 LMC2 (30 Dor)")
     ax[1, 1].text(
         10.0,
-        0.05,
+        0.065,
         "this proposal",
         fontsize=30,
         verticalalignment="center",
@@ -177,10 +179,24 @@ if __name__ == "__main__":
     ax[2, 0].plot(1.0 / smc1.obsdata_x, smc1.obsdata_axav, "r-", alpha=0.5, label="G03 SMCBar")
     ax[2, 0].set_xlabel(r"$\lambda [\mu m]$")
 
+    # AzV 456
+    obsext = ExtData(filename="data/azv456_ext_FM90.fits")
+    # print(obsext.fm90_p50_fit)
+    # xvals = np.arange(0.1, 0.3, 0.01) * u.micron
+    # fmod = FM90(C1=obsext.fm90_p50_fit["C1"][0],
+    #             C2=obsext.fm90_p50_fit["C2"][0],
+    #             C3=obsext.fm90_p50_fit["C3"][0],
+    #             C4=obsext.fm90_p50_fit["C4"][0],
+    #             xo=obsext.fm90_p50_fit["XO"][0],
+    #             gamma=obsext.fm90_p50_fit["GAMMA"][0])
+    # ax[2, 0].plot(xvals, fmod(xvals), "k-", alpha=0.25)
+    # obsext.trans_elv_alav()
+    obsext.plot(ax[2, 0], color="b", rebin_fac=10., legend_key="IUE", legend_label="G03 AzV 456")
+
     ax[2, 1].plot(1.0 / smc1.obsdata_x, smc1.obsdata_axav, label="G03 LMCBar")
     ax[2, 1].text(
         10,
-        0.05,
+        0.065,
         "this proposal",
         fontsize=30,
         verticalalignment="center",
@@ -211,7 +227,7 @@ if __name__ == "__main__":
         # ax[k, 0].xaxis.set_minor_formatter(ScalarFormatter())
 
         ax[k, 1].set_xlim(5.0, 15.0)
-        ax[k, 1].set_ylim(0.0, 0.1)
+        ax[k, 1].set_ylim(0.0, 0.13)
         # ax[k, 1].yaxis.tick_right()
         # ax[k, 1].yaxis.set_label_position("right")
 
